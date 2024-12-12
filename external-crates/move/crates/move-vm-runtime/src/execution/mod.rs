@@ -5,3 +5,4 @@ pub mod dispatch_tables;
 pub mod interpreter;
 pub mod values;
 pub mod vm;
+pub use crate::jit::execution::ast::Type;
