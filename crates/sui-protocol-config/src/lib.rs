@@ -208,6 +208,7 @@ const MAX_PROTOCOL_VERSION: u64 = 72;
 //             Max gas budget moved to 50_000 SUI
 //             Max gas price moved to 50 SUI
 //             Variants as type nodes.
+//             Native TxContext in Move.
 
 #[derive(Copy, Clone, Debug, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProtocolVersion(u64);
