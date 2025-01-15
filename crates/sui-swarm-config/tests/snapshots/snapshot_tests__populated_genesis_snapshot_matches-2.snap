@@ -1,6 +1,7 @@
 ---
 source: crates/sui-swarm-config/tests/snapshot_tests.rs
 expression: genesis.sui_system_object().into_genesis_version_for_tooling()
+snapshot_kind: text
 ---
 epoch: 0
 protocol_version: 72
@@ -334,4 +335,3 @@ extra_fields:
   id:
     id: "0xf741efb1558fc976c1b7ba102a1c0ad5b814a15913c08fe18c3abf20f74547a2"
   size: 0
-
