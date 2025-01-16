@@ -148,7 +148,7 @@ impl StoredPackage {
                 .collect(),
             linkage_context: LinkageContext::new(
                 verified_package.storage_id,
-                verified_package.linkage_table.into_iter().collect(),
+                verified_package.linkage_table,
             ),
             type_origin_table: verified_package.type_origin_table,
         }

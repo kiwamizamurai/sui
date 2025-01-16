@@ -126,7 +126,7 @@ impl Adapter {
         let vm = Arc::new(RwLock::new(
             InMemoryTestAdapter::new_with_runtime_and_storage(runtime, store),
         ));
-        let linkage = LinkageContext::new(ADDR2, HashMap::new());
+        let linkage = LinkageContext::new(ADDR2, []);
         Self {
             store: {
                 RelinkingStore {

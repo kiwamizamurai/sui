@@ -415,8 +415,7 @@ impl OnDiskStateView {
             all_dependencies
                 .into_iter()
                 .map(|id| (id, id))
-                .chain(vec![(*package_address, *package_address)])
-                .collect(),
+                .chain(vec![(*package_address, *package_address)]),
         );
         Ok(linkage_context)
     }

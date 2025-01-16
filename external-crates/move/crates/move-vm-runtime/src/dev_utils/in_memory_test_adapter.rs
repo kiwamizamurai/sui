@@ -208,8 +208,7 @@ impl VMTestAdapter<InMemoryStorage> for InMemoryTestAdapter {
             all_dependencies
                 .into_iter()
                 .map(|id| (id, id))
-                .chain(vec![(runtime_package_id, storage_id)])
-                .collect(),
+                .chain(vec![(runtime_package_id, storage_id)]),
         );
         Ok(linkage_context)
     }

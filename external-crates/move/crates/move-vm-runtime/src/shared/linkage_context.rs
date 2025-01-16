@@ -31,11 +31,11 @@ pub struct LinkageContext {
 impl LinkageContext {
     pub fn new(
         root_package: PackageStorageId,
-        linkage_table: HashMap<RuntimePackageId, PackageStorageId>,
+        linkage_table: impl IntoIterator<Item = (RuntimePackageId, PackageStorageId)>,
     ) -> Self {
         Self {
             root_package,
-            linkage_table,
+            linkage_table: linkage_table.into_iter().collect(),
         }
     }
 
