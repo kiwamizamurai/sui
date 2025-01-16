@@ -92,10 +92,13 @@ impl BlockManager {
         commit_sync_gc_round_override: Round,
     ) -> (Vec<VerifiedBlock>, BTreeSet<BlockRef>) {
         let _s = monitored_scope("BlockManager::try_accept_blocks");
+        let gc_round = self.dag_state.read().gc_round();
 
         blocks.sort_by_key(|b| b.round());
         debug!(
-            "Trying to accept blocks: {}",
+            "Trying to accept blocks with commit_sync_gc_round_override = {} and gc_round = {}: {}",
+            commit_sync_gc_round_override,
+            gc_round,
             blocks.iter().map(|b| b.reference().to_string()).join(",")
         );
 
@@ -274,6 +277,10 @@ impl BlockManager {
 
         // If the block is <= gc_round, then we simply skip its processing as there is no meaning do any action on it or even store it.
         if gc_enabled && block.round() <= gc_round {
+            if commit_sync_gc_round_override > 0 {
+                panic!("{}", format!("While accepting block with commit_sync_gc_round_override = {commit_sync_gc_round_override} > 0, we should never have block {:?} below the gc_round = {gc_round}", block));
+            }
+
             let hostname = self
                 .context
                 .committee

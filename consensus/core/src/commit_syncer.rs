@@ -345,6 +345,12 @@ impl<C: NetworkClient> CommitSyncer<C> {
                     }
                 };
 
+                info!(
+                    "Processed synced commit {} with previous leader {:?}.",
+                    commit.index(),
+                    last_committed_leader
+                );
+
                 // Every time we finish processing we update the last processed committed leader
                 self.last_processed_commit = Some(commit);
             }
