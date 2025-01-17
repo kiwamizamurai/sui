@@ -1357,6 +1357,8 @@ impl SuiNode {
             backpressure_manager,
         );
 
+        info!("Starting consensus manager");
+
         consensus_manager
             .start(
                 config,
@@ -1372,6 +1374,7 @@ impl SuiNode {
             )
             .await;
 
+        info!("Spawning checkpoint service");
         let checkpoint_service_tasks = checkpoint_service.spawn().await;
 
         if epoch_store.authenticator_state_enabled() {

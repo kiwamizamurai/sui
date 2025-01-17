@@ -897,9 +897,13 @@ impl CheckpointBuilder {
             {
                 Ok(seq) => {
                     self.last_built.send_if_modified(|cur| {
-                        assert!(seq > *cur);
-                        *cur = seq;
-                        true
+                        // when rebuilding checkpoints at startup, seq can be for an old checkpoint
+                        if seq > *cur {
+                            *cur = seq;
+                            true
+                        } else {
+                            false
+                        }
                     });
                 }
                 Err(e) => {
@@ -1202,20 +1206,16 @@ impl CheckpointBuilder {
         Ok(chunks)
     }
 
-    #[instrument(level = "debug", skip_all)]
-    async fn create_checkpoints(
-        &self,
-        all_effects: Vec<TransactionEffects>,
-        details: &PendingCheckpointInfo,
-    ) -> anyhow::Result<NonEmpty<(CheckpointSummary, CheckpointContents)>> {
-        let _scope = monitored_scope("CheckpointBuilder::create_checkpoints");
-        let total = all_effects.len();
-        let mut last_checkpoint = self.epoch_store.last_built_checkpoint_summary()?;
+    fn load_last_built_checkpoint_summary(
+        epoch_store: &AuthorityPerEpochStore,
+        tables: &CheckpointStore,
+    ) -> SuiResult<Option<(CheckpointSequenceNumber, CheckpointSummary)>> {
+        let mut last_checkpoint = epoch_store.last_built_checkpoint_summary()?;
         if last_checkpoint.is_none() {
-            let epoch = self.epoch_store.epoch();
+            let epoch = epoch_store.epoch();
             if epoch > 0 {
                 let previous_epoch = epoch - 1;
-                let last_verified = self.tables.get_epoch_last_checkpoint(previous_epoch)?;
+                let last_verified = tables.get_epoch_last_checkpoint(previous_epoch)?;
                 last_checkpoint = last_verified.map(VerifiedCheckpoint::into_summary_and_sequence);
                 if let Some((ref seq, _)) = last_checkpoint {
                     debug!("No checkpoints in builder DB, taking checkpoint from previous epoch with sequence {seq}");
@@ -1225,6 +1225,19 @@ impl CheckpointBuilder {
                 }
             }
         }
+        Ok(last_checkpoint)
+    }
+
+    #[instrument(level = "debug", skip_all)]
+    async fn create_checkpoints(
+        &self,
+        all_effects: Vec<TransactionEffects>,
+        details: &PendingCheckpointInfo,
+    ) -> anyhow::Result<NonEmpty<(CheckpointSummary, CheckpointContents)>> {
+        let _scope = monitored_scope("CheckpointBuilder::create_checkpoints");
+        let total = all_effects.len();
+        let mut last_checkpoint =
+            Self::load_last_built_checkpoint_summary(&self.epoch_store, &self.tables)?;
         let last_checkpoint_seq = last_checkpoint.as_ref().map(|(seq, _)| *seq);
         info!(
             next_checkpoint_seq = last_checkpoint_seq.unwrap_or_default() + 1,
@@ -2137,11 +2150,10 @@ pub struct CheckpointService {
     tables: Arc<CheckpointStore>,
     notify_builder: Arc<Notify>,
     notify_aggregator: Arc<Notify>,
-    last_built_tx: watch::Sender<CheckpointSequenceNumber>,
+    highest_currently_built_seq_tx: watch::Sender<CheckpointSequenceNumber>,
     last_signature_index: Mutex<u64>,
-    // The highest sequence number that had already been built at the time CheckpointService
-    // was constructed
-    last_built_seq: CheckpointSequenceNumber,
+    // The highest sequence number that had been built prior to the last restart
+    highest_previously_built_seq: CheckpointSequenceNumber,
     metrics: Arc<CheckpointMetrics>,
     state: Mutex<CheckpointServiceState>,
 }
@@ -2186,13 +2198,19 @@ impl CheckpointService {
         let notify_builder = Arc::new(Notify::new());
         let notify_aggregator = Arc::new(Notify::new());
 
-        let last_built_seq = epoch_store
-            .last_built_checkpoint_builder_summary()
-            .expect("epoch should not have ended")
-            .map(|s| s.summary.sequence_number)
+        // We may have built higher checkpoint numbers before restarting.
+        let highest_previously_built_seq = checkpoint_store
+            .get_latest_locally_computed_checkpoint()
+            .map(|s| s.sequence_number)
             .unwrap_or(0);
 
-        let (last_built_tx, _) = watch::channel(last_built_seq);
+        let highest_currently_built_seq =
+            CheckpointBuilder::load_last_built_checkpoint_summary(&epoch_store, &checkpoint_store)
+                .expect("epoch should not have ended")
+                .map(|(seq, _)| seq)
+                .unwrap_or(0);
+
+        let (highest_currently_built_seq_tx, _) = watch::channel(highest_currently_built_seq);
 
         let aggregator = CheckpointAggregator::new(
             checkpoint_store.clone(),
@@ -2212,7 +2230,7 @@ impl CheckpointService {
             accumulator,
             checkpoint_output,
             notify_aggregator.clone(),
-            last_built_tx.clone(),
+            highest_currently_built_seq_tx.clone(),
             metrics.clone(),
             max_transactions_per_checkpoint,
             max_checkpoint_size_bytes,
@@ -2228,8 +2246,8 @@ impl CheckpointService {
             notify_builder,
             notify_aggregator,
             last_signature_index,
-            last_built_seq,
-            last_built_tx,
+            highest_previously_built_seq,
+            highest_currently_built_seq_tx,
             metrics,
             state: Mutex::new(CheckpointServiceState::Unstarted((builder, aggregator))),
         })
@@ -2239,11 +2257,11 @@ impl CheckpointService {
 impl CheckpointService {
     /// Waits until the last_built_seq available in last_built_rx is >= last_built_seq
     pub async fn wait_for_rebuilt_checkpoints(&self) {
-        let last_built_seq = self.last_built_seq;
-        let mut rx = self.last_built_tx.subscribe();
+        let high_previously_built_seq = self.highest_previously_built_seq;
+        let mut rx = self.highest_currently_built_seq_tx.subscribe();
         loop {
-            let cur_last_built_seq = *rx.borrow_and_update();
-            if cur_last_built_seq >= last_built_seq {
+            let highest_currently_built_seq = *rx.borrow_and_update();
+            if highest_currently_built_seq >= high_previously_built_seq {
                 break;
             }
             rx.changed().await.unwrap();
