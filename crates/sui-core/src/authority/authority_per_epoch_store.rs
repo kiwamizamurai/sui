@@ -1267,6 +1267,7 @@ impl AuthorityPerEpochStore {
         effects_digest: &TransactionEffectsDigest,
         effects_signature: Option<&AuthoritySignInfo>,
     ) -> SuiResult {
+        // TODO: does this need to be quarantined?
         let tables = self.tables()?;
         let mut batch = self.tables()?.effects_signatures.batch();
 

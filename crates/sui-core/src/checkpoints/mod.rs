@@ -1004,6 +1004,12 @@ impl CheckpointBuilder {
 
                 // No other dependencies of this consensus commit prologue that haven't been included
                 // in any previous checkpoint.
+                if unsorted_ccp.len() != 1 {
+                    fatal!(
+                        "Expected 1 consensus commit prologue, got {:?}",
+                        unsorted_ccp.iter().map(|e| e.transaction_digest())
+                    );
+                }
                 assert_eq!(unsorted_ccp.len(), 1);
                 assert_eq!(unsorted_ccp[0].transaction_digest(), ccp_digest);
             }
