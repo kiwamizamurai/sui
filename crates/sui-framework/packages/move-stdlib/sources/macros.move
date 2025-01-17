@@ -84,7 +84,7 @@ public macro fun num_to_string($x: _): String {
     buffer.to_string()
 }
 
-public macro fun range_do($start: _, $stop: _, $f: |_| -> _) {
+public macro fun range_do<$R: drop>($start: _, $stop: _, $f: |_| -> $R) {
     let mut i = $start;
     let stop = $stop;
     while (i < stop) {
