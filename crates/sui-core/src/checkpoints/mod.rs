@@ -841,6 +841,8 @@ impl CheckpointBuilder {
             .epoch_store
             .last_built_checkpoint_builder_summary()
             .expect("epoch should not have ended");
+        debug!("last_built_summary: {:?}", summary);
+        // XXX
         let mut last_height = summary.clone().and_then(|s| s.checkpoint_height);
         let mut last_timestamp = summary.map(|s| s.summary.timestamp_ms);
 
@@ -857,6 +859,7 @@ impl CheckpointBuilder {
             .into_iter()
             .peekable();
         while let Some((height, pending)) = checkpoints_iter.next() {
+            debug!("pending: {:?}", pending);
             // Group PendingCheckpoints until:
             // - minimum interval has elapsed ...
             let current_timestamp = pending.details().timestamp_ms;
