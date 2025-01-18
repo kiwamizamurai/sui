@@ -3991,10 +3991,27 @@ impl AuthorityPerEpochStore {
         &self,
         last: Option<CheckpointHeight>,
     ) -> SuiResult<Vec<(CheckpointHeight, PendingCheckpointV2)>> {
-        Ok(self
+        let tables = self.tables()?;
+        let mut db_iter = tables.pending_checkpoints_v2.unbounded_iter();
+        if let Some(last_processed_height) = last {
+            db_iter = db_iter.skip_to(&(last_processed_height + 1))?;
+        }
+
+        let db_results: Vec<_> = db_iter.collect();
+
+        let mut quarantine_results = self
             .consensus_quarantine
             .read()
-            .get_pending_checkpoints(last))
+            .get_pending_checkpoints(last);
+
+        // retain only the checkpoints with heights greater than the highest height in the db
+        if let Some(db_highest_height) = db_results.last().map(|(h, _)| h) {
+            quarantine_results.retain(|(h, _)| h > db_highest_height);
+        }
+
+        let mut db_results = db_results;
+        db_results.extend(quarantine_results);
+        Ok(db_results)
     }
 
     pub fn pending_checkpoint_exists(&self, index: &CheckpointHeight) -> SuiResult<bool> {

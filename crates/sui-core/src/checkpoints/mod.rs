@@ -1007,7 +1007,10 @@ impl CheckpointBuilder {
                 if unsorted_ccp.len() != 1 {
                     fatal!(
                         "Expected 1 consensus commit prologue, got {:?}",
-                        unsorted_ccp.iter().map(|e| e.transaction_digest())
+                        unsorted_ccp
+                            .iter()
+                            .map(|e| e.transaction_digest())
+                            .collect::<Vec<_>>()
                     );
                 }
                 assert_eq!(unsorted_ccp.len(), 1);
