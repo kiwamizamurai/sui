@@ -883,8 +883,7 @@ impl AuthorityPerEpochStore {
         let jwk_aggregator = Mutex::new(jwk_aggregator);
 
         let shared_version_assignments =
-            Self::get_all_shared_version_assignments(&epoch_start_configuration, &tables)
-                .expect("load shared version assignments cannot fail");
+            Self::get_all_shared_version_assignments(&epoch_start_configuration, &tables);
 
         let deferred_transactions = tables
             .get_all_deferred_transactions()
@@ -4316,39 +4315,39 @@ impl AuthorityPerEpochStore {
         }
     }
 
+    // Used to read pre-existing shared object versions from the database after a crash.
+    // TODO: remove this once all nodes have upgraded to data-quarantining.
     fn get_all_shared_version_assignments(
         epoch_start_configuration: &EpochStartConfiguration,
         tables: &AuthorityEpochTables,
-    ) -> SuiResult<
-        Vec<(
-            TransactionKey,
-            Vec<(ConsensusObjectSequenceKey, SequenceNumber)>,
-        )>,
-    > {
-        Ok(
-            if epoch_start_configuration.use_version_assignment_tables_v3() {
-                tables
-                    .assigned_shared_object_versions_v3
-                    .safe_iter()
-                    .collect::<Result<_, _>>()?
-            } else {
-                tables
-                    .assigned_shared_object_versions_v2
-                    .safe_iter()
-                    .collect::<Result<Vec<_>, _>>()?
-                    .into_iter()
-                    .map(|(key, value)| {
-                        (
-                            key,
-                            value
-                                .into_iter()
-                                .map(|(id, v)| ((id, SequenceNumber::UNKNOWN), v))
-                                .collect::<Vec<_>>(),
-                        )
-                    })
-                    .collect()
-            },
-        )
+    ) -> Vec<(
+        TransactionKey,
+        Vec<(ConsensusObjectSequenceKey, SequenceNumber)>,
+    )> {
+        if epoch_start_configuration.use_version_assignment_tables_v3() {
+            tables
+                .assigned_shared_object_versions_v3
+                .safe_iter()
+                .collect::<Result<_, _>>()
+                .expect("db error")
+        } else {
+            tables
+                .assigned_shared_object_versions_v2
+                .safe_iter()
+                .collect::<Result<Vec<_>, _>>()
+                .expect("db error")
+                .into_iter()
+                .map(|(key, value)| {
+                    (
+                        key,
+                        value
+                            .into_iter()
+                            .map(|(id, v)| ((id, SequenceNumber::UNKNOWN), v))
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect()
+        }
     }
 }
 

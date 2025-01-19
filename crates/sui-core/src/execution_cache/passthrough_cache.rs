@@ -368,6 +368,13 @@ impl ExecutionCacheCommit for PassthroughCache {
     fn approximate_pending_transaction_count(&self) -> u64 {
         0
     }
+
+    fn persist_transactions_and_effects(
+        &self,
+        _digests: &[(TransactionDigest, TransactionEffectsDigest)],
+    ) {
+        // Nothing needs to be done since they were already committed in write_transaction_outputs
+    }
 }
 
 impl StateSyncAPI for PassthroughCache {
