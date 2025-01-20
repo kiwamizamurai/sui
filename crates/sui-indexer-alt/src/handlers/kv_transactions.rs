@@ -43,14 +43,14 @@ impl Processor for KvTransactions {
                 raw_transaction: bcs::to_bytes(transaction).with_context(|| {
                     format!("Serializing transaction {tx_digest} (cp {cp_sequence_number}, tx {i})")
                 })?,
-                raw_signatures: bcs::to_bytes(signatures).with_context(|| {
-                    format!("Serializing signatures for transaction {tx_digest} (cp {cp_sequence_number}, tx {i})")
-                })?,
                 raw_effects: bcs::to_bytes(effects).with_context(|| {
                     format!("Serializing effects for transaction {tx_digest} (cp {cp_sequence_number}, tx {i})")
                 })?,
                 events: bcs::to_bytes(&events).with_context(|| {
                     format!("Serializing events for transaction {tx_digest} (cp {cp_sequence_number}, tx {i})")
+                })?,
+                user_signatures: bcs::to_bytes(signatures).with_context(|| {
+                    format!("Serializing signatures for transaction {tx_digest} (cp {cp_sequence_number}, tx {i})")
                 })?,
             });
         }

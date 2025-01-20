@@ -112,7 +112,7 @@ diesel::table! {
         raw_transaction -> Bytea,
         raw_effects -> Bytea,
         events -> Bytea,
-        raw_signatures -> Bytea,
+        user_signatures -> Bytea,
     }
 }
 

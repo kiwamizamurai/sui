@@ -39,9 +39,9 @@ pub struct StoredTransaction {
     pub cp_sequence_number: i64,
     pub timestamp_ms: i64,
     pub raw_transaction: Vec<u8>,
-    pub raw_signatures: Vec<u8>,
     pub raw_effects: Vec<u8>,
     pub events: Vec<u8>,
+    pub user_signatures: Vec<u8>,
 }
 
 #[derive(Insertable, Debug, Clone, FieldCount)]
