@@ -38,7 +38,7 @@ diesel::table! {
         sequence_number -> Int8,
         checkpoint_contents -> Bytea,
         checkpoint_summary -> Bytea,
-        raw_signatures -> Bytea,
+        validator_signatures -> Bytea,
     }
 }
 

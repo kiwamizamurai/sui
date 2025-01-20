@@ -28,7 +28,7 @@ impl Processor for KvCheckpoints {
                 .with_context(|| format!("Serializing checkpoint {sequence_number} contents"))?,
             checkpoint_summary: bcs::to_bytes(checkpoint_summary)
                 .with_context(|| format!("Serializing checkpoint {sequence_number} summary"))?,
-            raw_signatures: bcs::to_bytes(signatures)
+            validator_signatures: bcs::to_bytes(signatures)
                 .with_context(|| format!("Serializing checkpoint {sequence_number} signatures"))?,
         }])
     }

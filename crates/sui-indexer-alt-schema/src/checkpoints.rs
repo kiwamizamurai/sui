@@ -18,7 +18,7 @@ pub struct StoredCheckpoint {
     /// BCS serialized CheckpointSummary
     pub checkpoint_summary: Vec<u8>,
     /// BCS serialized AuthorityQuorumSignInfo
-    pub raw_signatures: Vec<u8>,
+    pub validator_signatures: Vec<u8>,
 }
 
 #[derive(Insertable, Selectable, Queryable, Debug, Clone)]
@@ -29,7 +29,7 @@ pub struct StoredGenesis {
 }
 
 impl StoredGenesis {
-    /// Try and identify the chain that this indexer is idnexing based on its genesis checkpoint
+    /// Try and identify the chain that this indexer is indexing based on its genesis checkpoint
     /// digest.
     pub fn chain(&self) -> Result<Chain> {
         let bytes: [u8; 32] = self
